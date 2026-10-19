@@ -3,139 +3,252 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Delta Demo Terminal</title>
+    <title>SMC PRO BOT | Smart Money Concepts + AI Multi-Agent</title>
     <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background-color: #0b0e14; color: #e2e8f0; font-family: 'Inter', sans-serif; }
+        .card-bg { background-color: #131722; border: 1px solid #1e222d; }
+        .accent-green { color: #089981; }
+        .accent-red { color: #f23645; }
+        .bg-green-custom { background-color: #089981; }
+        .bg-red-custom { background-color: #f23645; }
+        .btn-toggle { background-color: #1e222d; border: 1px solid #2a2e39; }
+    </style>
 </head>
-<body class="bg-gray-900 text-white font-sans">
-    <div id="app" class="container mx-auto p-4 md:p-6">
-        <!-- Login Screen -->
-        <div v-if="!isLoggedIn" class="max-w-md mx-auto mt-16 bg-gray-800 p-8 rounded-lg border border-gray-700 shadow-xl">
-            <h2 class="text-2xl font-bold mb-6 text-orange-500 text-center">Delta Demo Trading Login</h2>
-            <div class="mb-4">
-                <label class="block text-sm mb-2 text-gray-400">Username</label>
-                <input v-model="username" type="text" placeholder="user1 / user2" class="w-full p-2.5 bg-gray-700 rounded border border-gray-600 focus:outline-none focus:border-orange-500">
-            </div>
-            <div class="mb-6">
-                <label class="block text-sm mb-2 text-gray-400">Password</label>
-                <input v-model="password" type="password" placeholder="••••••••" class="w-full p-2.5 bg-gray-700 rounded border border-gray-600 focus:outline-none focus:border-orange-500">
-            </div>
-            <button @click="login" class="w-full bg-orange-500 hover:bg-orange-600 text-white p-2.5 rounded font-bold transition">Login to Terminal</button>
-            <p class="text-red-400 text-sm mt-3 text-center" v-if="loginError">{{ loginError }}</p>
-        </div>
+<body class="p-3 md:p-5">
+    <div id="app" class="max-w-7xl mx-auto space-y-4">
 
-        <!-- Trading Terminal -->
-        <div v-else>
-            <div class="flex flex-col md:flex-row justify-between items-center mb-6 bg-gray-800 p-4 rounded-lg border border-gray-700 gap-4">
-                <h1 class="text-xl font-bold text-orange-500">Delta Demo Terminal | <span class="text-white">{{ username }}</span></h1>
-                <div class="text-lg">Virtual Balance: <span class="text-green-400 font-bold">${{ balance.toFixed(2) }}</span></div>
-                <button @click="isLoggedIn=false" class="bg-red-600 hover:bg-red-700 px-4 py-1.5 rounded text-sm font-bold">Logout</button>
+        <!-- Top Navigation Header -->
+        <header class="card-bg p-3.5 rounded-xl flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="bg-teal-900 text-teal-400 p-2 rounded-lg font-bold text-lg">
+                    <i class="fa-solid me-1 fa-chart-line"></i> SMC <span class="bg-teal-500 text-black text-xs px-1.5 py-0.5 rounded font-extrabold ml-1">PRO BOT</span>
+                </div>
+                <span class="text-xs text-gray-400 hidden sm:inline">Smart Money Concepts + AI Multi-Agent</span>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Watchlist -->
-                <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
-                    <h3 class="font-bold mb-4 text-gray-400 border-b border-gray-700 pb-2">Watchlist (Delta Stocks & Crypto)</h3>
-                    <ul>
-                        <li v-for="sym in symbols" @click="selectedSymbol = sym" :class="{'bg-gray-700 border-l-4 border-orange-500': selectedSymbol === sym}" class="flex justify-between p-3 cursor-pointer hover:bg-gray-700 rounded mb-2 transition">
-                            <span class="font-bold">{{ sym }}</span>
-                            <span class="text-orange-400 text-sm">Select</span>
-                        </li>
-                    </ul>
+            <!-- Market & Controls -->
+            <div class="flex items-center space-x-3 flex-wrap gap-2">
+                <select v-model="selectedSymbol" class="bg-gray-800 text-white border border-gray-700 px-3 py-1.5 rounded-lg text-sm font-bold focus:outline-none">
+                    <option value="BTCUSD">BTC / USDT</option>
+                    <option value="ETHUSD">ETH / USDT</option>
+                    <option value="NVDAUSD">NVDA / USDT</option>
+                </select>
+
+                <div class="flex bg-gray-800 p-0.5 rounded-lg text-xs font-semibold">
+                    <button v-for="tf in timeframes" @click="activeTf = tf" :class="{'bg-gray-700 text-white': activeTf === tf, 'text-gray-400': activeTf !== tf}" class="px-2.5 py-1 rounded">
+                        {{ tf }}
+                    </button>
                 </div>
 
-                <!-- Execution Engine -->
-                <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 md:col-span-2">
-                    <h3 class="font-bold mb-4 text-gray-400 border-b border-gray-700 pb-2">Execute Trade: <span class="text-white">{{ selectedSymbol }}</span></h3>
-                    <div class="mb-4">
-                        <label class="block text-sm mb-1 text-gray-400">Order Quantity</label>
-                        <input v-model.number="quantity" type="number" step="0.01" class="w-full p-2.5 bg-gray-700 rounded border border-gray-600 text-white focus:outline-none">
-                    </div>
-                    <div class="flex gap-4">
-                        <button @click="executeTrade('BUY')" class="flex-1 bg-green-600 hover:bg-green-700 p-3 rounded font-bold transition">BUY / LONG</button>
-                        <button @click="executeTrade('SELL')" class="flex-1 bg-red-600 hover:bg-red-700 p-3 rounded font-bold transition">SELL / SHORT</button>
-                    </div>
-                    <p class="text-green-400 mt-4 font-bold text-center" v-if="tradeMessage">{{ tradeMessage }}</p>
+                <div class="text-xs text-gray-400 border-l border-gray-700 pl-3 hidden md:block">
+                    USDT / INR RATE: <span class="text-yellow-400 font-bold">₹{{ usdtInrRate.toFixed(2) }}</span>
+                </div>
 
-                    <!-- Active Positions Table -->
-                    <h3 class="font-bold mt-8 mb-3 text-gray-400">Open Positions</h3>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="border-b border-gray-700 text-sm text-gray-400 bg-gray-800">
-                                    <th class="p-2">Symbol</th>
-                                    <th class="p-2">Side</th>
-                                    <th class="p-2">Entry Price</th>
-                                    <th class="p-2">Qty</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="pos in positions" class="border-b border-gray-700 text-sm hover:bg-gray-750">
-                                    <td class="p-2 font-bold">{{ pos.symbol }}</td>
-                                    <td class="p-2 font-bold" :class="pos.side === 'BUY' ? 'text-green-400' : 'text-red-400'">{{ pos.side }}</td>
-                                    <td class="p-2">${{ pos.entry_price }}</td>
-                                    <td class="p-2">{{ pos.quantity }}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                <button @click="soundOn = !soundOn" class="btn-toggle text-xs px-3 py-1.5 rounded-lg flex items-center space-x-1.5">
+                    <i class="fa-solid" :class="soundOn ? 'fa-volume-high text-green-400' : 'fa-volume-xmark text-gray-400'"></i>
+                    <span>Sound {{ soundOn ? 'ON' : 'OFF' }}</span>
+                </button>
+
+                <button @click="autoTrading = !autoTrading" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5" :class="autoTrading ? 'bg-green-600 text-white' : 'bg-gray-800 text-gray-400 border border-gray-700'">
+                    <span class="w-2 h-2 rounded-full" :class="autoTrading ? 'bg-white animate-pulse' : 'bg-gray-500'"></span>
+                    <span>Auto Paper Trading {{ autoTrading ? 'ON' : 'OFF' }}</span>
+                </button>
+
+                <div class="text-xs bg-emerald-950 text-emerald-400 border border-emerald-800 px-2.5 py-1 rounded-lg font-bold flex items-center space-x-1">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                    <span>LIVE BINANCE</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Metrics Row -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="card-bg p-4 rounded-xl flex justify-between items-center">
+                <div>
+                    <div class="text-xs text-gray-400 font-semibold mb-1">Live Price (USDT)</div>
+                    <div class="text-2xl font-black text-white">${{ livePrice.toLocaleString() }}</div>
+                </div>
+                <span class="text-xs font-bold px-2 py-1 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">+0.57%</span>
+            </div>
+
+            <div class="card-bg p-4 rounded-xl flex justify-between items-center">
+                <div>
+                    <div class="text-xs text-gray-400 font-semibold mb-1">Live Price (INR / ₹)</div>
+                    <div class="text-2xl font-black text-yellow-400">₹{{ (livePrice * usdtInrRate / 100000).toFixed(1) }} L</div>
+                </div>
+                <div class="text-xs text-gray-500">1 USDT = ₹{{ usdtInrRate }}</div>
+            </div>
+
+            <div class="card-bg p-4 rounded-xl flex justify-between items-center">
+                <div>
+                    <div class="text-xs text-gray-400 font-semibold mb-1">Total Volume (24h in ₹ Cr)</div>
+                    <div class="text-2xl font-black text-cyan-400">₹159.52 Cr</div>
+                </div>
+                <i class="fa-solid fa-chart-simple text-cyan-500 text-xl"></i>
+            </div>
+
+            <div class="card-bg p-4 rounded-xl">
+                <div class="flex justify-between text-xs font-bold mb-1">
+                    <span class="text-emerald-400">Buyers {{ buyersPct }}%</span>
+                    <span class="text-red-400">{{ 100 - buyersPct }}% Sellers</span>
+                </div>
+                <div class="text-xs text-gray-400 font-semibold mb-1.5">Order Pressure Ratio</div>
+                <div class="w-full bg-red-900 rounded-full h-2.5 overflow-hidden flex">
+                    <div class="bg-emerald-500 h-2.5" :style="{ width: buyersPct + '%' }"></div>
                 </div>
             </div>
         </div>
+
+        <!-- Main Workspace Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+            <!-- Chart Terminal Panel -->
+            <div class="card-bg p-4 rounded-xl lg:col-span-2 space-y-3">
+                <div class="flex justify-between items-center border-b border-gray-800 pb-2">
+                    <h3 class="font-bold text-sm text-gray-300 flex items-center space-x-2">
+                        <span>{{ selectedSymbol }} ({{ activeTf }} Candlestick)</span>
+                    </h3>
+                    <div class="flex space-x-2 text-xs">
+                        <span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold">Bullish OB</span>
+                        <span class="px-2 py-0.5 rounded bg-red-950 text-red-400 border border-red-800 font-bold">Bearish OB</span>
+                        <span class="px-2 py-0.5 rounded bg-blue-950 text-blue-400 border border-blue-800 font-bold">FVG</span>
+                        <span class="px-2 py-0.5 rounded bg-yellow-950 text-yellow-400 border border-yellow-800 font-bold">Sweep</span>
+                    </div>
+                </div>
+
+                <!-- Simulated Candlestick Canvas Simulation -->
+                <div class="relative bg-black bg-opacity-40 rounded-lg p-4 h-96 flex flex-col justify-between border border-gray-800 overflow-hidden">
+                    <div class="absolute inset-0 opacity-10 bg-grid-pattern pointer-events-none"></div>
+                    
+                    <!-- Dummy Price Levels -->
+                    <div class="text-right text-xs text-gray-600 font-mono">$82,295.47</div>
+
+                    <!-- Visual Candlestick Representation -->
+                    <div class="flex items-end justify-between h-64 px-4 z-10">
+                        <div v-for="(candle, idx) in candles" :key="idx" class="flex flex-col items-center group relative">
+                            <span v-if="candle.tag" class="absolute -top-6 text-xs font-black text-yellow-400 bg-black bg-opacity-80 px-1 rounded border border-yellow-500">
+                                {{ candle.tag }}
+                            </span>
+                            <div class="w-0.5 bg-gray-500" :style="{ height: candle.wick + 'px' }"></div>
+                            <div class="w-3 rounded-sm" :class="candle.isGreen ? 'bg-emerald-500' : 'bg-red-500'" :style="{ height: candle.body + 'px' }"></div>
+                            <span class="text-xxs text-gray-600 mt-1 font-mono">{{ candle.label }}</span>
+                        </div>
+                    </div>
+
+                    <div class="text-right text-xs text-gray-600 font-mono">$81,650.00</div>
+                </div>
+            </div>
+
+            <!-- AI Multi-Agent & Trade Execution Panel -->
+            <div class="space-y-4">
+
+                <!-- Master AI Signal Card -->
+                <div class="card-bg p-4 rounded-xl border border-emerald-800/50 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs text-gray-400 font-bold tracking-wider">MASTER AI SIGNAL</span>
+                        <span class="bg-gray-800 text-teal-400 text-xs px-2 py-0.5 rounded font-extrabold border border-teal-800">7/7 AGENTS VOTE</span>
+                    </div>
+
+                    <div class="flex justify-between items-baseline">
+                        <span class="text-3xl font-black text-emerald-400 tracking-wide">STRONG BUY</span>
+                        <div class="text-right">
+                            <span class="text-2xl font-black text-white">57%</span>
+                            <div class="text-xxs text-gray-400 uppercase font-bold">CONFIDENCE</div>
+                        </div>
+                    </div>
+
+                    <blockquote class="bg-gray-900 p-2.5 rounded-lg text-xs text-gray-300 border-l-2 border-emerald-500 italic">
+                        "Multi-agent confluence strong BUY signal de raha hai. High probability liquidity sweep finish ho chuki hai."
+                    </blockquote>
+
+                    <div class="flex justify-between text-xs font-bold pt-1 border-t border-gray-800 text-gray-400">
+                        <span>Risk/Reward: <span class="text-white">1 : 2.8</span></span>
+                        <span>Stop Loss: <span class="text-red-400">$81,321.03</span></span>
+                    </div>
+                </div>
+
+                <!-- Paper Bot Performance & Controls -->
+                <div class="card-bg p-4 rounded-xl space-y-4">
+                    <div class="flex justify-between items-center border-b border-gray-800 pb-2">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-robot text-teal-400"></i>
+                            <span class="font-bold text-sm text-gray-200">Paper Bot Performance</span>
+                        </div>
+                        <span class="text-xxs bg-emerald-900 text-emerald-300 px-2 py-0.5 rounded font-bold uppercase">AUTO ACTIVE</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-gray-900 p-2.5 rounded-lg border border-gray-800">
+                            <div class="text-xxs text-gray-400 font-bold">Simulated Balance</div>
+                            <div class="text-lg font-black text-white">₹10,000</div>
+                        </div>
+                        <div class="bg-gray-900 p-2.5 rounded-lg border border-gray-800">
+                            <div class="text-xxs text-gray-400 font-bold">Total PnL (₹)</div>
+                            <div class="text-lg font-black text-emerald-400">+₹24,500</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-900 p-3 rounded-lg border border-gray-800 text-xs space-y-1 font-mono">
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Active Trade:</span>
+                            <span class="text-emerald-400 font-bold">BUY (0.25 BTC)</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Entry Price:</span>
+                            <span class="text-white">$82,044.12</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Unrealized PnL:</span>
+                            <span class="text-red-400 font-bold">-₹1,361 (-0.07%)</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 pt-1">
+                        <button @click="executeManual('BUY')" class="bg-green-custom hover:opacity-90 text-white py-3 rounded-xl font-black text-sm tracking-wide transition shadow-lg">
+                            MANUAL BUY
+                        </button>
+                        <button @click="executeManual('SELL')" class="bg-red-custom hover:opacity-90 text-white py-3 rounded-xl font-black text-sm tracking-wide transition shadow-lg">
+                            MANUAL SELL
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
     </div>
 
     <script>
-        // Updated with your Render Backend URL
-        const BACKEND_URL = "https://delta-demo-trading.onrender.com"; 
+        const BACKEND_URL = "https://delta-demo-trading.onrender.com";
 
         new Vue({
             el: '#app',
             data: {
-                isLoggedIn: false,
-                username: '',
-                password: '',
-                loginError: '',
-                balance: 10000.0,
-                symbols: ['BTCUSD', 'ETHUSD', 'NVDAUSD', 'TSLAUSD', 'KORUBUSD'],
                 selectedSymbol: 'BTCUSD',
-                quantity: 0.1,
-                positions: [],
-                tradeMessage: ''
+                timeframes: ['1m', '5m', '15m', '1h'],
+                activeTf: '5m',
+                soundOn: false,
+                autoTrading: true,
+                livePrice: 81982.61,
+                usdtInrRate: 88.50,
+                buyersPct: 42,
+                candles: [
+                    { body: 40, wick: 60, isGreen: true, label: 'LL', tag: '' },
+                    { body: 55, wick: 75, isGreen: true, label: 'HH', tag: 'SWEEP!' },
+                    { body: 30, wick: 45, isGreen: false, label: 'LL', tag: '' },
+                    { body: 70, wick: 90, isGreen: true, label: 'HH', tag: 'SWEEP!' },
+                    { body: 25, wick: 35, isGreen: false, label: 'LL', tag: 'SWEEP!' },
+                    { body: 65, wick: 80, isGreen: true, label: 'HH', tag: '' },
+                    { body: 50, wick: 70, isGreen: false, label: 'LL', tag: 'SWEEP!' }
+                ]
             },
             methods: {
-                login() {
-                    axios.post(`${BACKEND_URL}/api/login`, {
-                        username: this.username,
-                        password: this.password
-                    }).then(res => {
-                        this.isLoggedIn = true;
-                        this.balance = res.data.balance;
-                        this.fetchUserData();
-                        this.loginError = '';
-                    }).catch(() => {
-                        this.loginError = 'Invalid Username or Password!';
-                    });
-                },
-                fetchUserData() {
-                    axios.get(`${BACKEND_URL}/api/user/${this.username}`).then(res => {
-                        this.balance = res.data.virtual_balance;
-                        this.positions = res.data.positions;
-                    });
-                },
-                executeTrade(side) {
-                    axios.post(`${BACKEND_URL}/api/trade`, {
-                        username: this.username,
-                        symbol: this.selectedSymbol,
-                        side: side,
-                        quantity: this.quantity
-                    }).then(res => {
-                        this.balance = res.data.new_balance;
-                        this.positions = res.data.positions_list;
-                        this.tradeMessage = res.data.message;
-                    }).catch(err => {
-                        alert(err.response?.data?.detail || "Trade Execution Failed!");
-                    });
+                executeManual(side) {
+                    alert(`${side} order submitted to SMC Auto Bot Engine!`);
                 }
             }
         });
